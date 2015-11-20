@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>login</title>
+        <link rel="stylesheet" href="/css/bootstrap.min.css">
+    </head>
+    <body>
+
+        <div class="container">
+            <form method="POST" action="/authenticate/verify" class="form-signin">
+                <label for="username" class="sr-only">Email address</label>
+                <input type="input" name="username" id="username" class="form-control" placeholder="Username" required autofocus>
+                <label for="password" class="sr-only">Password</label>
+                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required autofocus>
+
+                <label for="code" class="sr-only">Verification code</label>
+                <input type="password" name="code" id="code" class="form-control" placeholder="Verification code" required>
+
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+            </form>
+        </div>
+    </body>
+    <script>
+        document.querySelector("form").action += '?' + location.hash.substr(1);
+    </script>
+</html>
