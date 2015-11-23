@@ -1,4 +1,4 @@
-# 2fanginx
+# 2FANGINX
 
 *Documentation is being written right now*
 
