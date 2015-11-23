@@ -1,6 +1,5 @@
 // Original from https://gist.github.com/jebjerg/d1c4a23057d5f35a8157 (jebjerg)
-// Swap values for  CHANGE FOR YOURSELF, and OBS: it's a novelty authentication, so improvements can and will happen
-
+// Change CHOOSE-A-SECRET-YOURSELF and eventually the cookie name 'mycookie' currently'
 package main
 
 import (
@@ -21,20 +20,22 @@ import (
 
 // TODO: ?next=..., sha256 cookie
 
-const DOMAIN = ".localhost" // CHANGE FOR YOURSELF
-const SECURE_COOKIE = true
+const CookieMaxAge = 4 * time.Hour
 
-const TOTP_SECRET_PATH = "/var/auth/2fa/%v/.google_authenticator"
-const SHADOWFILE = "/var/auth/shadow" // CHANGE FOR YOURSELF
+const Domain = ".secure.mydomain.eu" // CHANGE FOR YOURSELF
+const SecureCookie = true
 
-func TOTP_Secret(user string) (string, error) {
+const TOTPSecretPath = "/var/auth/2fa/%v/.google_authenticator"
+const ShadowFile = "/var/auth/shadow"
+
+func TOTPSecret(user string) (string, error) {
 	if len(user) > 0 {
-		auth_file, err := os.Open(fmt.Sprintf(TOTP_SECRET_PATH, user))
+		authFile, err := os.Open(fmt.Sprintf(TOTPSecretPath, user))
 		if err != nil {
 			return "", err
 		}
-		defer auth_file.Close()
-		scanner := bufio.NewScanner(auth_file)
+		defer authFile.Close()
+		scanner := bufio.NewScanner(authFile)
 		scanner.Scan()
 		secret := scanner.Text()
 		if len(secret) >= 16 {
@@ -45,7 +46,7 @@ func TOTP_Secret(user string) (string, error) {
 }
 
 func CheckPassword(username, password string) bool {
-	shadow, err := os.Open(SHADOWFILE)
+	shadow, err := os.Open(ShadowFile)
 	if err != nil {
 		fmt.Println("err:", err)
 		return false
@@ -53,19 +54,39 @@ func CheckPassword(username, password string) bool {
 	defer shadow.Close()
 	scanner := bufio.NewScanner(shadow)
 	for scanner.Scan() {
-		shadow_parts := strings.SplitN(scanner.Text(), ":", 3)
-		shadow_user, shadow_hash := shadow_parts[0], shadow_parts[1]
-		if shadow_user == username {
-			crypt_parts := strings.SplitN(shadow_hash, "$", 3)
+		shadowParts := strings.SplitN(scanner.Text(), ":", 3)
+		shadowUser, shadowHash := shadowParts[0], shadowParts[1]
+		if shadowUser == username {
+			crypt_parts := strings.SplitN(shadowHash, "$", 3)
 			id := crypt_parts[1]
 			if id != "6" {
 				fmt.Println("WARN! id not 6, refusing")
 				return false
 			}
-			return sha512Crypt.Verify(password, shadow_hash)
+			return sha512Crypt.Verify(password, shadowHash)
 		}
 	}
 	return false
+}
+
+func FreeCookie(w http.ResponseWriter, req *http.Request) {
+	cookieContent := fmt.Sprintf("%v=aaaaaa", "mycookie")
+	expire := time.Now()
+	cookie := http.Cookie{"mycookie",
+		"1:1",
+		"/",
+		Domain,
+		expire,
+		expire.Format(time.UnixDate),
+		0,
+		SecureCookie,
+		true,
+		cookieContent,
+		[]string{cookieContent},
+	}
+	http.SetCookie(w, &cookie)
+
+	http.Redirect(w, req, "/", http.StatusFound)
 }
 
 func Authenticate(w http.ResponseWriter, req *http.Request) {
@@ -74,16 +95,22 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		req.Form.Get("password"),
 		req.Form.Get("code")
 
-	secret, err := TOTP_Secret(username)
+	// TODO: Cleanup the url
+	next := req.URL.Query().Get("next")
+	if next == "" {
+		next = "/"
+	}
+
+	secret, err := TOTPSecret(username)
 	if err != nil {
 		logrus.Error(err)
-		http.Redirect(w, req, "/error", http.StatusTemporaryRedirect)
+		http.Redirect(w, req, next, http.StatusTemporaryRedirect)
 		return
 	}
 	otp, err := gototp.New(secret)
 	if err != nil {
 		logrus.Error(err)
-		http.Redirect(w, req, "/error", http.StatusTemporaryRedirect)
+		http.Redirect(w, req, next, http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -92,32 +119,32 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 			code == fmt.Sprintf("%06d", otp.Now()) ||
 			code == fmt.Sprintf("%06d", otp.FromNow(1))) {
 		SignResponse(w, username)
-		http.Redirect(w, req, "/", http.StatusFound)
+		// If has param 'next', go to it, otherwise '/'
+		http.Redirect(w, req, next, http.StatusFound)
 		return
 	}
-	http.Redirect(w, req, "/error", http.StatusTemporaryRedirect)
+
+	http.Redirect(w, req, next, http.StatusTemporaryRedirect)
 	return
 }
 
-const CookieMaxAge = 4 * time.Hour
-
 func SignResponse(w http.ResponseWriter, username string) {
 	expiration := /*username +*/ fmt.Sprintf("%v", int(time.Now().Unix())+3600)
-	mac := hmac.New(sha1.New, []byte("cookienamefdjklmgdjfkjfdgkljdf"))
+	mac := hmac.New(sha1.New, []byte("CHOOSE-A-SECRET-YOURSELF"))
 	mac.Write([]byte(expiration))
 	hash := fmt.Sprintf("%x", mac.Sum(nil))
 	value := fmt.Sprintf("%v:%v", expiration, hash)
 
-	cookieContent := fmt.Sprintf("%v=%v", "cookiename", value)
+	cookieContent := fmt.Sprintf("%v=%v", "mycookie", value)
 	expire := time.Now().Add(CookieMaxAge)
-	cookie := http.Cookie{"cookiename",
+	cookie := http.Cookie{"mycookie",
 		value,
 		"/",
-		DOMAIN,
+		Domain,
 		expire,
 		expire.Format(time.UnixDate),
 		int(CookieMaxAge.Seconds()),
-		SECURE_COOKIE,
+		SecureCookie,
 		true,
 		cookieContent,
 		[]string{cookieContent},
@@ -126,11 +153,12 @@ func SignResponse(w http.ResponseWriter, username string) {
 }
 
 func main() {
-	port := ":8080"
+	port := ":9434"
 	if p := os.Getenv("PORT"); len(p) > 0 {
 		port = fmt.Sprintf(":%s", p)
 	}
 
+	http.HandleFunc("/authenticate/free", FreeCookie)
 	http.HandleFunc("/authenticate/verify", Authenticate)
 	http.Handle("/", http.StripPrefix("/authenticate/", http.FileServer(http.Dir("./static"))))
 
