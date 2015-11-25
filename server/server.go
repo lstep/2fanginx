@@ -9,7 +9,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -24,9 +23,10 @@ import (
 	"gopkg.in/throttled/throttled.v2/store/memstore"
 )
 
-const cookieMaxAge = 4 * time.Hour
+var cookieMaxAge time.Duration
 
-const Domain = ".secure.mydomain.eu" // CHANGE FOR YOURSELF
+//const cookieMaxAge = 4 * time.Hour
+
 const secureCookie = true
 
 const TOTPSecretPath = "/var/auth/2fa/%v/.google_authenticator"
@@ -79,7 +79,7 @@ func freeCookie(w http.ResponseWriter, req *http.Request) {
 	cookie := http.Cookie{"mycookie",
 		"1:1",
 		"/",
-		Domain,
+		viper.GetString("domain"),
 		expire,
 		expire.Format(time.UnixDate),
 		0,
@@ -144,7 +144,7 @@ func signResponse(w http.ResponseWriter, username string) {
 	cookie := http.Cookie{"mycookie",
 		value,
 		"/",
-		Domain,
+		viper.GetString("domain"),
 		expire,
 		expire.Format(time.UnixDate),
 		int(cookieMaxAge.Seconds()),
@@ -159,6 +159,7 @@ func signResponse(w http.ResponseWriter, username string) {
 // Run is the main function
 func Run(cmd *cobra.Command, args []string) {
 	address := viper.GetString("address")
+	cookieMaxAge = time.Duration(viper.GetInt("cookiemaxage")) * time.Hour
 
 	// Throttling control
 	store, err := memstore.New(65536)
@@ -182,9 +183,11 @@ func Run(cmd *cobra.Command, args []string) {
 	mux.HandleFunc("/authenticate/verify", authenticate)
 	mux.Handle("/", http.StripPrefix("/authenticate/", http.FileServer(http.Dir("./static"))))
 
-	fmt.Printf("2FA HTTP layer listening on %s\n", address)
+	logrus.Infof("2FA HTTP layer listening on %s", address)
+	logrus.Infof("Domain for cookies is %s", viper.GetString("domain"))
+	logrus.Infof("Cookie max age is %s hour(s)", viper.GetString("cookiemaxage"))
 
 	if err := http.ListenAndServe(address, httpRateLimiter.RateLimit(mux)); err != nil {
-		log.Fatal("Unable to create HTTP layer", err)
+		logrus.Fatal("Unable to create HTTP layer", err)
 	}
 }

@@ -32,11 +32,19 @@ var serveCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(serveCmd)
 
+	// @NOTE: Do not set the default values here, that doesn't work correctly!
 	serveCmd.Flags().BoolP("daemon", "d", false, "Run as a daemon and detach from terminal")
 	serveCmd.Flags().StringP("address", "a", "", "Set address:port to listen on")
+	serveCmd.Flags().StringP("domain", "e", "", "Set domain to use with cookies")
+	serveCmd.Flags().IntP("cookiemaxage", "c", 4, "Set magical cookie's lifetime before it expires (in hours)")
 
 	viper.BindPFlag("address", serveCmd.Flags().Lookup("address"))
+	viper.BindPFlag("domain", serveCmd.Flags().Lookup("domain"))
+	viper.BindPFlag("cookiemaxage", serveCmd.Flags().Lookup("cookiemaxage"))
+
 	viper.SetDefault("address", "127.0.0.1:9434")
+	viper.SetDefault("domain", ".secure.mydomain.eu")
+	viper.SetDefault("cookiemaxage", 4)
 
 	// Here you will define your flags and configuration settings.
 
