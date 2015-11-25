@@ -25,8 +25,6 @@ import (
 
 var cookieMaxAge time.Duration
 
-//const cookieMaxAge = 4 * time.Hour
-
 const secureCookie = true
 
 const TOTPSecretPath = "/var/auth/2fa/%v/.google_authenticator"
@@ -99,6 +97,8 @@ func authenticate(w http.ResponseWriter, req *http.Request) {
 		req.Form.Get("password"),
 		req.Form.Get("code")
 
+	logrus.Infof("Trying to authenticate %s", username)
+
 	// TODO: Cleanup the url
 	next := req.URL.Query().Get("next")
 	if next == "" {
@@ -111,6 +111,7 @@ func authenticate(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, next, http.StatusTemporaryRedirect)
 		return
 	}
+
 	otp, err := gototp.New(secret)
 	if err != nil {
 		logrus.Error(err)
@@ -122,6 +123,7 @@ func authenticate(w http.ResponseWriter, req *http.Request) {
 		(code == fmt.Sprintf("%06d", otp.FromNow(-1)) ||
 			code == fmt.Sprintf("%06d", otp.Now()) ||
 			code == fmt.Sprintf("%06d", otp.FromNow(1))) {
+		logrus.Infof("Signing cookie for authentified user %s", username)
 		signResponse(w, username)
 		// If has param 'next', go to it, otherwise '/'
 		http.Redirect(w, req, next, http.StatusFound)
@@ -133,8 +135,8 @@ func authenticate(w http.ResponseWriter, req *http.Request) {
 }
 
 func signResponse(w http.ResponseWriter, username string) {
-	expiration := /*username +*/ fmt.Sprintf("%v", int(time.Now().Unix())+3600)
-	mac := hmac.New(sha1.New, []byte("CHOOSE-A-SECRET-YOURSELF"))
+	expiration := fmt.Sprintf("%v", int(time.Now().Unix())+3600)
+	mac := hmac.New(sha1.New, []byte(viper.GetString("cookiesecret")))
 	mac.Write([]byte(expiration))
 	hash := fmt.Sprintf("%x", mac.Sum(nil))
 	value := fmt.Sprintf("%v:%v", expiration, hash)
