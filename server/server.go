@@ -18,6 +18,10 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/craigmj/gototp"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"gopkg.in/throttled/throttled.v2"
+	"gopkg.in/throttled/throttled.v2/store/memstore"
 )
 
 const cookieMaxAge = 4 * time.Hour
@@ -154,17 +158,33 @@ func signResponse(w http.ResponseWriter, username string) {
 
 // Run is the main function
 func Run(cmd *cobra.Command, args []string) {
-	port := ":9434"
-	if p := os.Getenv("PORT"); len(p) > 0 {
-		port = fmt.Sprintf(":%s", p)
+	address := viper.GetString("address")
+
+	// Throttling control
+	store, err := memstore.New(65536)
+	if err != nil {
+		logrus.Fatal(err)
 	}
 
-	http.HandleFunc("/authenticate/free", freeCookie)
-	http.HandleFunc("/authenticate/verify", authenticate)
-	http.Handle("/", http.StripPrefix("/authenticate/", http.FileServer(http.Dir("./static"))))
+	quota := throttled.RateQuota{throttled.PerMin(20), 5}
+	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
-	fmt.Println("2FA HTTP layer listening")
-	if err := http.ListenAndServe(port, nil); err != nil {
+	httpRateLimiter := throttled.HTTPRateLimiter{
+		RateLimiter: rateLimiter,
+		VaryBy:      &throttled.VaryBy{Path: true},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/authenticate/free", freeCookie)
+	mux.HandleFunc("/authenticate/verify", authenticate)
+	mux.Handle("/", http.StripPrefix("/authenticate/", http.FileServer(http.Dir("./static"))))
+
+	fmt.Printf("2FA HTTP layer listening on %s\n", address)
+
+	if err := http.ListenAndServe(address, httpRateLimiter.RateLimit(mux)); err != nil {
 		log.Fatal("Unable to create HTTP layer", err)
 	}
 }

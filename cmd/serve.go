@@ -18,6 +18,7 @@ import (
 	"2fanginx/server"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // serveCmd respresents the serve command
@@ -32,6 +33,10 @@ func init() {
 	RootCmd.AddCommand(serveCmd)
 
 	serveCmd.Flags().BoolP("daemon", "d", false, "Run as a daemon and detach from terminal")
+	serveCmd.Flags().StringP("address", "a", "", "Set address:port to listen on")
+
+	viper.BindPFlag("address", serveCmd.Flags().Lookup("address"))
+	viper.SetDefault("address", "127.0.0.1:9434")
 
 	// Here you will define your flags and configuration settings.
 
