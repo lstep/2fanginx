@@ -4,18 +4,11 @@ package server
 // Change CHOOSE-A-SECRET-YOURSELF and eventually the cookie name 'mycookie' currently'
 
 import (
-	"2fanginx/sha512Crypt"
-	"bufio"
-	"crypto/hmac"
-	"crypto/sha1"
-	"fmt"
+	"2fanginx/pluginTOTP"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/craigmj/gototp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -23,139 +16,41 @@ import (
 	"gopkg.in/throttled/throttled.v2/store/memstore"
 )
 
-var cookieMaxAge time.Duration
+func handleAuthenticate(w http.ResponseWriter, req *http.Request) {
 
-const secureCookie = true
-
-const TOTPSecretPath = "/var/auth/2fa/%v/.google_authenticator"
-const shadowFile = "/var/auth/shadow"
-
-func TOTPSecret(user string) (string, error) {
-	if len(user) > 0 {
-		authFile, err := os.Open(fmt.Sprintf(TOTPSecretPath, user))
-		if err != nil {
-			return "", err
+	/* @TODO: Algorithm
+	- Get the first in the chain.
+	- Execute it, and check its result: 0 -> OK, 1 -> Rejected
+	- If there is a next in the chain and the previous result is 0, then continue, otherwise, FINAL Reject.
+	- If we are at the last element in the chain, if the result is OK, then FINAL OK, otherwise FINAL Reject.
+	*/
+	result, username, next := pluginTOTP.Authentication(w, req)
+	switch result {
+	case 0: // PASSED
+		if true { //lastInChain {
+			signResponse(w, username)
+			http.Redirect(w, req, next, http.StatusFound)
+			return
 		}
-		defer authFile.Close()
-		scanner := bufio.NewScanner(authFile)
-		scanner.Scan()
-		secret := scanner.Text()
-		if len(secret) >= 16 {
-			return secret, nil
-		}
-	}
-	return "", fmt.Errorf("bad user '%v'", user)
-}
 
-func checkPassword(username, password string) bool {
-	shadow, err := os.Open(shadowFile)
-	if err != nil {
-		fmt.Println("err:", err)
-		return false
-	}
-	defer shadow.Close()
-	scanner := bufio.NewScanner(shadow)
-	for scanner.Scan() {
-		shadowParts := strings.SplitN(scanner.Text(), ":", 3)
-		shadowUser, shadowHash := shadowParts[0], shadowParts[1]
-		if shadowUser == username {
-			cryptParts := strings.SplitN(shadowHash, "$", 3)
-			id := cryptParts[1]
-			if id != "6" {
-				fmt.Println("WARN! id not 6, refusing")
-				return false
-			}
-			return sha512Crypt.Verify(password, shadowHash)
-		}
-	}
-	return false
-}
-
-func freeCookie(w http.ResponseWriter, req *http.Request) {
-	cookieContent := fmt.Sprintf("%v=aaaaaa", "mycookie")
-	expire := time.Now()
-	cookie := http.Cookie{"mycookie",
-		"1:1",
-		"/",
-		viper.GetString("domain"),
-		expire,
-		expire.Format(time.UnixDate),
-		0,
-		secureCookie,
-		true,
-		cookieContent,
-		[]string{cookieContent},
-	}
-	http.SetCookie(w, &cookie)
-
-	http.Redirect(w, req, "/", http.StatusFound)
-}
-
-func authenticate(w http.ResponseWriter, req *http.Request) {
-	req.ParseForm()
-	username, password, code := req.Form.Get("username"),
-		req.Form.Get("password"),
-		req.Form.Get("code")
-
-	logrus.Infof("Trying to authenticate %s", username)
-
-	// TODO: Cleanup the url
-	next := req.URL.Query().Get("next")
-	if next == "" {
-		next = "/"
-	}
-
-	secret, err := TOTPSecret(username)
-	if err != nil {
-		logrus.Error(err)
+	case 1: // FAILED
+		purgeCookie(w)
 		http.Redirect(w, req, next, http.StatusTemporaryRedirect)
 		return
 	}
 
-	otp, err := gototp.New(secret)
-	if err != nil {
-		logrus.Error(err)
-		http.Redirect(w, req, next, http.StatusTemporaryRedirect)
-		return
-	}
-
-	if checkPassword(username, password) &&
-		(code == fmt.Sprintf("%06d", otp.FromNow(-1)) ||
-			code == fmt.Sprintf("%06d", otp.Now()) ||
-			code == fmt.Sprintf("%06d", otp.FromNow(1))) {
-		logrus.Infof("Signing cookie for authentified user %s", username)
-		signResponse(w, username)
-		// If has param 'next', go to it, otherwise '/'
-		http.Redirect(w, req, next, http.StatusFound)
-		return
-	}
-
+	// normally should not go here. FAILED
+	logrus.Error("Should never arrive here...")
 	http.Redirect(w, req, next, http.StatusTemporaryRedirect)
-	return
 }
 
-func signResponse(w http.ResponseWriter, username string) {
-	expiration := fmt.Sprintf("%v", int(time.Now().Unix())+3600)
-	mac := hmac.New(sha1.New, []byte(viper.GetString("cookiesecret")))
-	mac.Write([]byte(expiration))
-	hash := fmt.Sprintf("%x", mac.Sum(nil))
-	value := fmt.Sprintf("%v:%v", expiration, hash)
-
-	cookieContent := fmt.Sprintf("%v=%v", "mycookie", value)
-	expire := time.Now().Add(cookieMaxAge)
-	cookie := http.Cookie{"mycookie",
-		value,
-		"/",
-		viper.GetString("domain"),
-		expire,
-		expire.Format(time.UnixDate),
-		int(cookieMaxAge.Seconds()),
-		secureCookie,
-		true,
-		cookieContent,
-		[]string{cookieContent},
-	}
-	http.SetCookie(w, &cookie)
+// handleFreeCookie sets an invalid/outdated cookie to remove the current one
+func handleFreeCookie(w http.ResponseWriter, req *http.Request) {
+	// @TODO: get username from the cookie (value returned from purgeCookie?)
+	// @TODO: *MUST* store the username in the cookie
+	purgeCookie(w)
+	logrus.Infof("logged out a user")
+	http.Redirect(w, req, "/", http.StatusFound)
 }
 
 // Run is the main function
@@ -181,8 +76,8 @@ func Run(cmd *cobra.Command, args []string) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/authenticate/free", freeCookie)
-	mux.HandleFunc("/authenticate/verify", authenticate)
+	mux.HandleFunc("/authenticate/free", handleFreeCookie)
+	mux.HandleFunc("/authenticate/verify", handleAuthenticate)
 	mux.Handle("/", http.StripPrefix("/authenticate/", http.FileServer(http.Dir("./static"))))
 
 	logrus.Infof("2FA HTTP layer listening on %s", address)
