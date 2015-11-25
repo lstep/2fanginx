@@ -62,9 +62,11 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName(".2fanginx") // name of config file (without extension)
-	viper.AddConfigPath("$HOME")     // adding home directory as first search path
-	viper.AutomaticEnv()             // read in environment variables that match
+	viper.SetConfigName("2fanginx") // name of config file (without extension)
+	viper.AddConfigPath("/etc/")
+	viper.AddConfigPath("$HOME")
+	viper.AddConfigPath(".") // adding home directory as first search path
+	viper.AutomaticEnv()     // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
