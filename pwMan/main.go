@@ -2,7 +2,6 @@ package pwMan
 
 import (
 	"crypto/rand"
-	"fmt"
 	"io"
 	"log"
 	"time"
@@ -27,7 +26,7 @@ type UserInformation struct {
 }
 
 // NewUser creates a user
-func NewUser(username string, password string, init2FA string) *UserInformation {
+func NewUser(username string, password string, init2FA string) (*UserInformation, error) {
 
 	hmacKey := []byte(viper.GetString("hmackey"))
 
@@ -35,18 +34,18 @@ func NewUser(username string, password string, init2FA string) *UserInformation 
 	pwhash, err := scryptauth.New(12, hmacKey)
 	if err != nil {
 		logrus.Error(err)
-		return nil
+		return nil, err
 	}
 
 	hash, salt, err := pwhash.Gen([]byte(password))
 	if err != nil {
 		logrus.Error(err)
-		return nil
+		return nil, err
 	}
 
-	fmt.Printf("hash=%x salt=%x\n", hash, salt)
 	str := scryptauth.EncodeBase64(pwhash.PwCost, hash, salt)
-	fmt.Printf("base64ed: %s\n", str)
+	//fmt.Printf("hash=%x salt=%x\n", hash, salt)
+	//fmt.Printf("base64ed: %s\n", str)
 
 	u := &UserInformation{
 		Username:       username,
@@ -56,7 +55,7 @@ func NewUser(username string, password string, init2FA string) *UserInformation 
 		ResetRequired:  false,
 	}
 
-	return u
+	return u, nil
 }
 
 /*** ***/

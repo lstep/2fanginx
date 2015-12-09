@@ -21,11 +21,18 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/lstep/gototp"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
+// CreateUser is a procedure for creating a user
 func CreateUser(cmd *cobra.Command, args []string) {
+	username := viper.GetString("name")
+	if username == "" {
+		fmt.Println("Required 'name' parameter not specified")
+		return
+	}
 
-	fmt.Println("Creating User...")
+	fmt.Printf("Creating User %s...\n", username)
 
 	// Generate TOTP
 	init2FA, err := gototp.New(gototp.RandomSecret(10))
@@ -33,9 +40,13 @@ func CreateUser(cmd *cobra.Command, args []string) {
 		logrus.Error(err)
 		return
 	}
-	//fmt.Println(o.QRCodeTerminal("label"))
-	logrus.Infof("2FA secret: %s\n", init2FA.Secret())
 
-	pwMan.NewUser("lstep", "foobar", init2FA.Secret())
+	if _, err := pwMan.NewUser("lstep", "foobar", init2FA.Secret()); err != nil {
+		fmt.Printf("Error while creating user %s: %v\n", username, err)
+	}
+
+	fmt.Printf("User %s created. Caracteristics :\n", username)
+	fmt.Printf("2FA init: %s\n", init2FA.Secret())
+	//fmt.Println(.QRCodeTerminal("label"))
 
 }

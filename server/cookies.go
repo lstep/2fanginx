@@ -10,13 +10,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cookieMaxAge time.Duration
-
 const secureCookie = true
 
 func signResponse(w http.ResponseWriter, username string) {
 	// @TODO: Store the username in the cookie (in cleartext) so it can be used afterwards
-	expiration := fmt.Sprintf("%v", int(time.Now().Unix())+3600)
+	cookieMaxAge := time.Duration(viper.GetInt("cookiemaxage")) * time.Hour
+
+	expiration := fmt.Sprintf("%v", int(time.Now().Unix())+int(cookieMaxAge.Seconds()))
 	mac := hmac.New(sha1.New, []byte(viper.GetString("cookiesecret")))
 	mac.Write([]byte(expiration))
 	hash := fmt.Sprintf("%x", mac.Sum(nil))

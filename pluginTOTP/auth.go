@@ -46,6 +46,7 @@ func tOTPSecret(user string) (string, error) {
 	return "", fmt.Errorf("bad user '%v'", user)
 }
 
+// @TODO: MODIFY
 func checkPassword(username, password string) bool {
 	shadow, err := os.Open(shadowFile)
 	if err != nil {

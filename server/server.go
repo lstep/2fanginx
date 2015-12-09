@@ -6,7 +6,6 @@ package server
 import (
 	"2fanginx/pluginTOTP"
 	"net/http"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -56,7 +55,6 @@ func handleFreeCookie(w http.ResponseWriter, req *http.Request) {
 // Run is the main function
 func Run(cmd *cobra.Command, args []string) {
 	address := viper.GetString("address")
-	cookieMaxAge = time.Duration(viper.GetInt("cookiemaxage")) * time.Hour
 
 	// Throttling control
 	store, err := memstore.New(65536)
@@ -82,7 +80,7 @@ func Run(cmd *cobra.Command, args []string) {
 
 	logrus.Infof("2FA HTTP layer listening on %s", address)
 	logrus.Infof("Domain for cookies is %s", viper.GetString("domain"))
-	logrus.Infof("Cookie max age is %s hour(s)", viper.GetString("cookiemaxage"))
+	logrus.Infof("Cookie max age is %d hour(s)", viper.GetInt("cookiemaxage"))
 
 	if err := http.ListenAndServe(address, httpRateLimiter.RateLimit(mux)); err != nil {
 		logrus.Fatal("Unable to create HTTP layer", err)
