@@ -15,19 +15,21 @@
 package pluginTOTP
 
 import (
-	"2fanginx/sha512Crypt"
+	"2fanginx/database"
 	"bufio"
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gebi/scryptauth"
 	"github.com/lstep/gototp"
+	"github.com/spf13/viper"
 )
 
 const tOTPSecretPath = "/var/auth/2fa/%v/.google_authenticator"
-const shadowFile = "/var/auth/shadow"
+
+//const shadowFile = "/var/auth/shadow"
 
 func tOTPSecret(user string) (string, error) {
 	if len(user) > 0 {
@@ -48,26 +50,31 @@ func tOTPSecret(user string) (string, error) {
 
 // @TODO: MODIFY
 func checkPassword(username, password string) bool {
-	shadow, err := os.Open(shadowFile)
+	db := database.GetDB()
+
+	hmacKey := []byte(viper.GetString("hmackey"))
+	pwhash, err := scryptauth.New(12, hmacKey)
 	if err != nil {
-		fmt.Println("err:", err)
+		logrus.Error(err)
 		return false
 	}
-	defer shadow.Close()
-	scanner := bufio.NewScanner(shadow)
-	for scanner.Scan() {
-		shadowParts := strings.SplitN(scanner.Text(), ":", 3)
-		shadowUser, shadowHash := shadowParts[0], shadowParts[1]
-		if shadowUser == username {
-			cryptParts := strings.SplitN(shadowHash, "$", 3)
-			id := cryptParts[1]
-			if id != "6" {
-				fmt.Println("WARN! id not 6, refusing")
+
+	// Find the user
+	for _, item := range db.Users {
+		if item.Username == username {
+			// found !
+			pwCost, hash, salt, err := scryptauth.DecodeBase64(item.ScryptPassword)
+			if err != nil {
+				logrus.Error(err)
 				return false
 			}
-			return sha512Crypt.Verify(password, shadowHash)
+
+			ok, err := pwhash.Check(pwCost, hash, []byte(password), salt)
+			return ok
 		}
 	}
+
+	logrus.Infof("Username %s not found in the database", username)
 	return false
 }
 

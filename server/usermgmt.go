@@ -15,10 +15,12 @@
 package server
 
 import (
+	"2fanginx/database"
 	"2fanginx/pwMan"
 	"fmt"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/Songmu/prompter"
 	"github.com/lstep/gototp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,6 +28,9 @@ import (
 
 // CreateUser is a procedure for creating a user
 func CreateUser(cmd *cobra.Command, args []string) {
+	database.InitDB()
+	db := database.GetDB()
+
 	username := viper.GetString("name")
 	if username == "" {
 		fmt.Println("Required 'name' parameter not specified")
@@ -34,6 +39,13 @@ func CreateUser(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("Creating User %s...\n", username)
 
+	for _, item := range db.Users {
+		if item.Username == username {
+			logrus.Errorf("User %s already exists in the database", username)
+			return
+		}
+	}
+
 	// Generate TOTP
 	init2FA, err := gototp.New(gototp.RandomSecret(10))
 	if err != nil {
@@ -41,12 +53,21 @@ func CreateUser(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if _, err := pwMan.NewUser("lstep", "foobar", init2FA.Secret()); err != nil {
+	// check if password was specified, otherwise, go interactive
+	password := viper.GetString("password")
+	if password == "" {
+		password = prompter.Password("Enter password to use")
+	}
+
+	user, err := pwMan.NewUser(username, password, init2FA.Secret())
+	if err != nil {
 		fmt.Printf("Error while creating user %s: %v\n", username, err)
 	}
 
+	db.AddUser(*user)
+
 	fmt.Printf("User %s created. Caracteristics :\n", username)
-	fmt.Printf("2FA init: %s\n", init2FA.Secret())
+	fmt.Printf("2FA init: %s || QRCode link: %s\n", init2FA.Secret(), init2FA.QRCodeGoogleChartsUrl("Code", 320))
 	//fmt.Println(.QRCodeTerminal("label"))
 
 }

@@ -4,6 +4,7 @@ package server
 // Change CHOOSE-A-SECRET-YOURSELF and eventually the cookie name 'mycookie' currently'
 
 import (
+	"2fanginx/database"
 	"2fanginx/pluginTOTP"
 	"net/http"
 
@@ -54,6 +55,7 @@ func handleFreeCookie(w http.ResponseWriter, req *http.Request) {
 
 // Run is the main function
 func Run(cmd *cobra.Command, args []string) {
+	database.InitDB()
 	address := viper.GetString("address")
 
 	// Throttling control
@@ -77,6 +79,8 @@ func Run(cmd *cobra.Command, args []string) {
 	mux.HandleFunc("/authenticate/free", handleFreeCookie)
 	mux.HandleFunc("/authenticate/verify", handleAuthenticate)
 	mux.Handle("/", http.StripPrefix("/authenticate/", http.FileServer(http.Dir("./static"))))
+
+	database.InitDB()
 
 	logrus.Infof("2FA HTTP layer listening on %s", address)
 	logrus.Infof("Domain for cookies is %s", viper.GetString("domain"))

@@ -36,16 +36,19 @@ func init() {
 	serveCmd.Flags().BoolP("daemon", "d", false, "Run as a daemon and detach from terminal")
 	serveCmd.Flags().StringP("address", "a", "", "Set address:port to listen on")
 	serveCmd.Flags().StringP("domain", "e", "", "Set domain to use with cookies")
+	serveCmd.Flags().StringP("databasepath", "f", "", "Set path to database where the user infos are stored")
 	serveCmd.Flags().IntP("cookiemaxage", "m", 4, "Set magical cookie's lifetime before it expires (in hours)")
 	serveCmd.Flags().StringP("cookiesecret", "c", "", "Secret string to use in signing cookies")
 
 	viper.BindPFlag("address", serveCmd.Flags().Lookup("address"))
 	viper.BindPFlag("domain", serveCmd.Flags().Lookup("domain"))
+	viper.BindPFlag("databasepath", serveCmd.Flags().Lookup("databasepath"))
 	viper.BindPFlag("cookiemaxage", serveCmd.Flags().Lookup("cookiemaxage"))
 	viper.BindPFlag("cookiesecret", serveCmd.Flags().Lookup("cookiesecret"))
 
 	viper.SetDefault("address", "127.0.0.1:9434")
 	viper.SetDefault("domain", ".secure.mydomain.eu")
+	viper.SetDefault("databasepath", "./database.json")
 	viper.SetDefault("cookiemaxage", 4)
 	viper.SetDefault("cookiesecret", "CHOOSE-A-SECRET-YOURSELF")
 
