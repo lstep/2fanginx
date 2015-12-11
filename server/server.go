@@ -19,7 +19,9 @@ package server
 import (
 	"2fanginx/database"
 	"2fanginx/pluginTOTP"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -28,6 +30,8 @@ import (
 	"gopkg.in/throttled/throttled.v2"
 	"gopkg.in/throttled/throttled.v2/store/memstore"
 )
+
+var buildst = "none"
 
 func handleAuthenticate(w http.ResponseWriter, req *http.Request) {
 
@@ -95,9 +99,15 @@ func Run(cmd *cobra.Command, args []string) {
 
 	database.InitDB()
 
+	if buildst == "none" {
+		buildst = "[This Dev version is not compiled using regular procedure]"
+	}
+
+	logrus.Info(fmt.Sprintf("Starting App, version %s", buildst))
 	logrus.Infof("2FA HTTP layer listening on %s", address)
 	logrus.Infof("Domain for cookies is %s", viper.GetString("domain"))
 	logrus.Infof("Cookie max age is %d hour(s)", viper.GetInt("cookiemaxage"))
+	logrus.Info("Starting instance on ", time.Now())
 
 	if err := http.ListenAndServe(address, httpRateLimiter.RateLimit(mux)); err != nil {
 		logrus.Fatal("Unable to create HTTP layer", err)

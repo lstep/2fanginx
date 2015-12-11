@@ -14,7 +14,17 @@
 
 package main
 
-import "2fanginx/cmd"
+import (
+	"2fanginx/cmd"
+	"expvar"
+	"math/rand"
+	"time"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+	expvar.NewString("service.startTime").Set(time.Now().String())
+}
 
 func main() {
 	cmd.Execute()
