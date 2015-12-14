@@ -1,0 +1,29 @@
+package: 2fanginx
+import:
+- package: crypto/hmac
+- package: crypto/rand
+- package: crypto/sha1
+- package: encoding/json
+- package: expvar
+- package: fmt
+- package: github.com/Sirupsen/logrus
+- package: github.com/Songmu/prompter
+- package: github.com/gebi/scryptauth
+- package: github.com/lstep/gototp
+- package: github.com/spf13/cobra
+- package: github.com/spf13/viper
+- package: gopkg.in/throttled/throttled.v2
+  subpackages:
+  - store/memstore
+- package: io
+  subpackages:
+  - ioutil
+- package: log
+- package: math/rand
+- package: net/http
+- package: os
+  subpackages:
+  - signal
+- package: sync
+- package: syscall
+- package: time
