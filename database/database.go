@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package database
 
 import (
@@ -56,7 +57,7 @@ func CreateDB() {
 
 // InitDB From article by Karl Seguin (http://openmymind.net/Golang-Hot-Configuration-Reload/)
 func InitDB() {
-	logrus.Info("Loading database of users")
+	logrus.Info("(init) Loading database of users from ", viper.GetString("databasepath"))
 	LoadDB(true)
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGUSR2)
@@ -96,21 +97,34 @@ func LoadDB(fail bool) {
 	dbLock.Unlock()
 }
 
+// FindUser returns user object if found
+func (udb *UserDatabase) FindUser(username string) *pwMan.UserInformation {
+	//db := database.GetDB()
+
+	if len(username) > 0 {
+		for _, item := range udb.Users {
+			if item.Username == username {
+				return &item
+			}
+		}
+	}
+	return nil
+}
+
 // AddUser adds a user
-func (*UserDatabase) AddUser(u pwMan.UserInformation) string {
-	logrus.Info("Adding user to the database")
-	db := GetDB()
+func (udb *UserDatabase) AddUser(u pwMan.UserInformation) string {
+	logrus.Infof("Adding user %s to the database", u.Username)
 
 	// @TODO: Check that it doesn't already exist
-	for _, item := range db.Users {
+	for _, item := range udb.Users {
 		if item.Username == u.Username {
 			logrus.Errorf("User %s already exists in the database", u.Username)
 			return "User already present"
 		}
 	}
 
-	db.Users = append(db.Users, u)
-	db.Save()
+	udb.Users = append(udb.Users, u)
+	udb.Save()
 	return ""
 }
 

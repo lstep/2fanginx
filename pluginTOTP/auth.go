@@ -16,10 +16,8 @@ package pluginTOTP
 
 import (
 	"2fanginx/database"
-	"bufio"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gebi/scryptauth"
@@ -27,28 +25,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const tOTPSecretPath = "/var/auth/2fa/%v/.google_authenticator"
-
-//const shadowFile = "/var/auth/shadow"
-
-func tOTPSecret(user string) (string, error) {
-	if len(user) > 0 {
-		authFile, err := os.Open(fmt.Sprintf(tOTPSecretPath, user))
-		if err != nil {
-			return "", err
-		}
-		defer authFile.Close()
-		scanner := bufio.NewScanner(authFile)
-		scanner.Scan()
-		secret := scanner.Text()
-		if len(secret) >= 16 {
-			return secret, nil
-		}
-	}
-	return "", fmt.Errorf("bad user '%v'", user)
-}
-
-// @TODO: MODIFY
 func checkPassword(username, password string) bool {
 	db := database.GetDB()
 
@@ -78,9 +54,11 @@ func checkPassword(username, password string) bool {
 	return false
 }
 
-// @TODO: Remove w http.ResponseWriter, req *http.Request to make it independent and ease the tests
 // Authentication is the main method: returncode, username, next_url
 func Authentication(w http.ResponseWriter, req *http.Request) (int, string, string) {
+	// @TODO: Remove w http.ResponseWriter, req *http.Request to make it independent and ease the tests
+	udb := database.GetDB()
+
 	req.ParseForm()
 
 	username, password, code := req.Form.Get("username"),
@@ -93,14 +71,13 @@ func Authentication(w http.ResponseWriter, req *http.Request) (int, string, stri
 	}
 
 	logrus.Infof("Trying to authenticate %s", username)
-
-	secret, err := tOTPSecret(username)
-	if err != nil {
-		logrus.Error(err)
+	u := udb.FindUser(username)
+	if u == nil {
+		logrus.Errorf("Username %s not found in database", username)
 		return 1, "", next
 	}
 
-	otp, err := gototp.New(secret)
+	otp, err := gototp.New(u.Init2FA)
 	if err != nil {
 		logrus.Error(err)
 		return 1, "", next
@@ -116,5 +93,6 @@ func Authentication(w http.ResponseWriter, req *http.Request) (int, string, stri
 		return 0, username, next
 	}
 
+	logrus.Error("Failed authentication (pass or OTP) for user ", username)
 	return 1, "", next
 }
