@@ -11,10 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package server
 
-// Original from https://gist.github.com/jebjerg/d1c4a23057d5f35a8157 (jebjerg)
-// Change CHOOSE-A-SECRET-YOURSELF and eventually the cookie name 'mycookie' currently'
+package server
 
 import (
 	"2fanginx/database"
@@ -31,7 +29,10 @@ import (
 	"gopkg.in/throttled/throttled.v2/store/memstore"
 )
 
-var buildst = "none"
+var (
+	buildst = "none"
+	githash = "none"
+)
 
 func handleAuthenticate(w http.ResponseWriter, req *http.Request) {
 
@@ -103,7 +104,7 @@ func Run(cmd *cobra.Command, args []string) {
 		buildst = "[This Dev version is not compiled using regular procedure]"
 	}
 
-	logrus.Info(fmt.Sprintf("Starting App, version %s", buildst))
+	logrus.Info(fmt.Sprintf("Starting App, version %s, hash %s", buildst, githash))
 	logrus.Infof("2FA HTTP layer listening on %s", address)
 	logrus.Infof("Domain for cookies is %s", viper.GetString("domain"))
 	logrus.Infof("Cookie max age is %d hour(s)", viper.GetInt("cookiemaxage"))

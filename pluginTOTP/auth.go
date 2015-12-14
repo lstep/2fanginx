@@ -83,6 +83,12 @@ func Authentication(w http.ResponseWriter, req *http.Request) (int, string, stri
 		return 1, "", next
 	}
 
+	/* temp */
+	if !checkPassword(username, password) {
+		logrus.Error("Wrong pass")
+		return 1, "", next
+	}
+
 	if checkPassword(username, password) &&
 		(code == fmt.Sprintf("%06d", otp.FromNow(-1)) ||
 			code == fmt.Sprintf("%06d", otp.Now()) ||
