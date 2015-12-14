@@ -1,6 +1,6 @@
 #2FAnginx
 
-[![Total Downloads](https://img.shields.io/github/downloads/2fangnx/latest/total.svg?style=flat-square)](https://github.com/lstep/2fanginx/releases) [![License](http://img.shields.io/badge/license-apache-blue.svg?style=flat-square)](https://raw.githubusercontent.com/lstep/2fanginx/master/LICENSE) [![Build Status](https://drone.io/github.com/lstep/2fanginx/status.png)](https://drone.io/github.com/lstep/2fanginx/latest)
+[![Total Downloads](https://img.shields.io/github/downloads/2fangnx/latest/total.svg?style=flat-square)](https://github.com/lstep/2fanginx/releases) [![License](http://img.shields.io/badge/license-apache-blue.svg?style=flat-square)](https://raw.githubusercontent.com/lstep/2fanginx/master/LICENSE) [![Go Report Card](http://goreportcard.com/badge/Masterminds/glide)](http://goreportcard.com/report/lstep/2fanginx) [![Build Status](https://drone.io/github.com/lstep/2fanginx/status.png)](https://drone.io/github.com/lstep/2fanginx/latest)
 
 
 *Documentation is being written right now*
