@@ -15,8 +15,8 @@
 package server
 
 import (
-	"2fanginx/database"
-	"2fanginx/pluginTOTP"
+	"github.com/lstep/2fanginx/database"
+	"github.com/lstep/2fanginx/pluginTOTP"
 	"net/http"
 	"time"
 

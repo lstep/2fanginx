@@ -28,8 +28,8 @@
 package server
 
 import (
-	"2fanginx/database"
-	"2fanginx/pwMan"
+	"github.com/lstep/2fanginx/database"
+	"github.com/lstep/2fanginx/pwMan"
 	"fmt"
 
 	"github.com/Sirupsen/logrus"

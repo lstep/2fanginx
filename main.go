@@ -15,7 +15,7 @@
 package main
 
 import (
-	"2fanginx/cmd"
+	"github.com/lstep/2fanginx/cmd"
 	"expvar"
 	"math/rand"
 	"time"

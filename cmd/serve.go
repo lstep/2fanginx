@@ -15,7 +15,7 @@
 package cmd
 
 import (
-	"2fanginx/server"
+	"github.com/lstep/2fanginx/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -15,7 +15,7 @@
 package database
 
 import (
-	"2fanginx/pwMan"
+	"github.com/lstep/2fanginx/pwMan"
 	"encoding/json"
 	"io/ioutil"
 	"os"

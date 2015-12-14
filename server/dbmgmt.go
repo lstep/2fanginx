@@ -14,7 +14,7 @@
 package server
 
 import (
-	"2fanginx/database"
+	"github.com/lstep/2fanginx/database"
 
 	"github.com/spf13/cobra"
 )

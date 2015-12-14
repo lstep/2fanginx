@@ -15,7 +15,7 @@
 package pluginTOTP
 
 import (
-	"2fanginx/database"
+	"github.com/lstep/2fanginx/database"
 	"fmt"
 	"net/http"
 
