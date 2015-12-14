@@ -17,7 +17,6 @@ package server
 import (
 	"2fanginx/database"
 	"2fanginx/pluginTOTP"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -104,7 +103,7 @@ func Run(cmd *cobra.Command, args []string) {
 		buildst = "[This Dev version is not compiled using regular procedure]"
 	}
 
-	logrus.Info(fmt.Sprintf("Starting App, version %s, hash %s", buildst, githash))
+	logrus.Info("Starting App, ", Version)
 	logrus.Infof("2FA HTTP layer listening on %s", address)
 	logrus.Infof("Domain for cookies is %s", viper.GetString("domain"))
 	logrus.Infof("Cookie max age is %d hour(s)", viper.GetInt("cookiemaxage"))
