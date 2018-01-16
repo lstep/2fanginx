@@ -15,17 +15,18 @@
 package server
 
 import (
-	"github.com/lstep/2fanginx/database"
-	"github.com/lstep/2fanginx/pluginTOTP"
 	"net/http"
 	"time"
+
+	"github.com/lstep/2fanginx/database"
+	"github.com/lstep/2fanginx/pluginTOTP"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"gopkg.in/throttled/throttled.v2"
-	"gopkg.in/throttled/throttled.v2/store/memstore"
+	"github.com/throttled/throttled"
+	"github.com/throttled/throttled/store/memstore"
 )
 
 var (
