@@ -1,4 +1,3 @@
-#2FAnginx
 
 [![Total Downloads](https://img.shields.io/github/downloads/2fangnx/latest/total.svg?style=flat-square)](https://github.com/lstep/2fanginx/releases) [![License](http://img.shields.io/badge/license-apache-blue.svg?style=flat-square)](https://raw.githubusercontent.com/lstep/2fanginx/master/LICENSE) [![Go Report Card](http://goreportcard.com/badge/Masterminds/glide)](http://goreportcard.com/report/lstep/2fanginx)  [![Build Status](https://travis-ci.org/lstep/2fanginx.svg?branch=master)](https://travis-ci.org/lstep/2fanginx)
 <span class="badge-patreon"><a href="http://patreon.com/lstep" title="Donate to this project using Patreon"><img src="https://img.shields.io/badge/patreon-donate-yellow.svg" alt="Patreon donate button" /></a></span>
