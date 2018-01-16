@@ -15,6 +15,10 @@
 * Securely hashed (HMAC-SHA1) cookie (distributed only on HTTPS)
 * [Throttling connexions](https://github.com/throttled/throttled) to prevent brute force password attempts and DDoS
 
+## Requirements
+
+* Always use the most accessible software, and do not need to recompile a full NGINX isntance. So using the default NGINX Ubuntu/Debian package and the default Lua module addon also available as a package (`libnginx-mod-http-lua`).
+
 ## References
 
 * Initially based on ([gist](https://gist.github.com/jebjerg/d1c4a23057d5f35a8157) written by [jebjerg](http://github.com/jebjerg))
