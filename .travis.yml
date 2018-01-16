@@ -4,7 +4,6 @@ go:
   - 1.9.2
 env:
   - GOARCH=amd64
-  - GO15VENDOREXPERIMENT=1
 notifications:
   email:
     on_success: change
